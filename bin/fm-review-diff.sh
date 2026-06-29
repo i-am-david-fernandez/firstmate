@@ -92,3 +92,16 @@ if ! "$STAT_ONLY"; then
   echo
   git -C "$WT" diff "$BASE...$BRANCH" --
 fi
+
+# Secret-scan the change before the captain sees it (AGENTS.md hard rule HR4).
+# Scans the new commits on the branch ($BASE..HEAD) from inside the worktree.
+# The gate self-disables when FM_ENABLE_SECRET_SCAN is off (handled inside
+# fm-secret-scan.sh, the single chokepoint); no flag check is needed here.
+echo
+echo "=== secret scan (vs $BASE) ==="
+SCAN_RC=0
+( cd "$WT" && "$FM_ROOT/bin/fm-secret-scan.sh" --since "$BASE" ) || SCAN_RC=$?
+if [ "$SCAN_RC" -ne 0 ]; then
+  echo "SECRET SCAN: findings or scanner error (rc=$SCAN_RC) - do NOT merge until resolved" >&2
+  exit "$SCAN_RC"
+fi

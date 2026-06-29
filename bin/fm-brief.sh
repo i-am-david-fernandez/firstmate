@@ -155,6 +155,8 @@ The report is the only thing that survives, so anything worth keeping must be in
 6. If a decision belongs to a human (product choices, destructive actions),
    append \`needs-decision: {summary of options}\` and stop. Firstmate will reply with the decision.
 
+**Secret hygiene.** Use only obviously-fake placeholder values for any tokens, keys, ids, hostnames, or emails in your report - never real ones (AGENTS.md hard rule HR2).
+
 # Definition of done
 Write your findings to \`$DATA/$ID/report.md\`.
 The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
@@ -254,6 +256,10 @@ $RULE1
 5. If you hit the same obstacle twice, append \`blocked: {why}\` and stop; firstmate will help.
 6. If a decision belongs to a human (product choices, destructive actions, ask-user findings),
    append \`needs-decision: {summary of options}\` and stop. Firstmate will reply with the decision.
+
+**Secret hygiene (required).** Before every commit, run \`$FM_ROOT/bin/fm-secret-scan.sh --staged\` and never commit on a finding; allowlist only documented, obviously-fake placeholders in the repo's \`.betterleaks.toml\`, never by deleting a real detection.
+Use only obviously-fake placeholder values for any tokens, keys, ids, hostnames, or emails in code, tests, fixtures, or docs - never real ones.
+Real values live only in gitignored local config or the environment. See AGENTS.md hard rules HR1-HR4.
 
 # Project memory
 If \`AGENTS.md\` or \`CLAUDE.md\` already exists, or if this task produced durable project-intrinsic knowledge, run \`$FM_ROOT/bin/fm-ensure-agents-md.sh .\` in the worktree.

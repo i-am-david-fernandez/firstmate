@@ -62,6 +62,25 @@ This is opt-in and entirely local; the shared template ships no channel.
 
 When no channel is configured, the helpers fail fast with a clear error and firstmate simply converses in chat as before.
 
+## Secret scanning (optional, local)
+
+`bin/fm-secret-scan.sh` is a local, offline secret scan run before any commit, push, PR, local-only merge, or handoff (AGENTS.md hard rule HR4).
+It catches credentials *before* they leave the machine, for project work and firstmate self-improvement alike, and never makes a network call.
+It is wired into `bin/fm-review-diff.sh` (surfaces findings before the captain sees a diff) and `bin/fm-merge-local.sh` (refuses to merge on a finding), and crewmate ship briefs instruct `fm-secret-scan.sh --staged` before every commit.
+
+- **Scanner (assumption A1).** Full-fidelity scanning uses [`betterleaks`](https://github.com/betterleaks/betterleaks) on `PATH` - a pure-local, single Go binary by the original gitleaks author. The operator installs it (pin a specific version, verify the checksum); firstmate only invokes it, always redacted so it never echoes a raw secret.
+- **Degraded mode.** When `betterleaks` is absent the scanner does not silently pass: it falls back to a built-in high-signal prefix grep, prints a loud `DEGRADED:` warning, and still exits non-zero on a hit. Set `FM_SECRET_SCAN_STRICT=1` to make a missing binary a hard failure instead.
+- **Allowlist (`.betterleaks.toml`).** The tracked repo-root `.betterleaks.toml` (gitleaks-format, read by betterleaks) allowlists the documented, obviously-fake placeholders firstmate legitimately ships, so the scanner stays quiet and trusted. Keep it tight and commented; never silence a real detection. Per-project `.betterleaks.toml` files are a project change shipped by a crewmate, not hand-written by firstmate.
+- **Coverage boundary.** The scanner covers high-entropy credentials (tokens/keys), not low-entropy private identifiers (channel/user/team ids, hostnames). Hard rules HR2 (fake placeholders only) and HR3 (hermetic tests) cover the latter; the two are complementary.
+- **Master switch.** `FM_ENABLE_SECRET_SCAN` turns the whole gate on or off at the single chokepoint (`bin/fm-secret-scan.sh`), so every call site - review, local merge, crewmate briefs - is gated together. It defaults to **on** (fail-safe): only an explicit `0`, `false`, `no`, or `off` (case-insensitive) disables it. When disabled the script prints one notice (`secret scan: disabled via FM_ENABLE_SECRET_SCAN`) and exits 0 - never a silent skip.
+
+```
+FM_ENABLE_SECRET_SCAN=     # master on/off switch (default: on); 0|false|no|off disables the gate
+FM_SECRET_SCAN_BIN=        # override the scanner binary/path (default: betterleaks on PATH)
+FM_SECRET_SCAN_CONFIG=     # override the config file (default: repo-root .betterleaks.toml)
+FM_SECRET_SCAN_STRICT=     # 1 = treat "binary absent" as a hard failure (default: degrade+warn)
+```
+
 ## Harness support
 
 claude, codex, opencode, and pi are all empirically verified; new harnesses get verified through a supervised trial task before joining the set.
@@ -134,6 +153,10 @@ FM_CONFIG_OVERRIDE=      # alternate config dir, mainly for tests
 FM_BRANCH_PREFIX=        # optional crewmate branch prefix; set means <prefix>/fm/<id>, unset means fm/<id>
 SLACK_API_KEY=           # Slack bot token (xoxb-...) for the optional attention channel; environment only
 FM_SLACK_CHANNEL=        # Slack channel id override; else read from config/slack-channel
+FM_ENABLE_SECRET_SCAN=   # master on/off switch for the secret-scan gate (default: on); 0|false|no|off disables it
+FM_SECRET_SCAN_BIN=      # override the secret-scanner binary (default: betterleaks on PATH)
+FM_SECRET_SCAN_CONFIG=   # override the scanner config file (default: repo-root .betterleaks.toml)
+FM_SECRET_SCAN_STRICT=   # 1 = treat "scanner binary absent" as a hard failure (default: degrade+warn)
 FM_SLACK_POLL=45         # seconds between fm-slack-watch polls
 FM_POLL=15              # seconds between watcher poll cycles
 FM_HEARTBEAT=600        # base seconds between heartbeat scans; no-change heartbeats are absorbed while idle

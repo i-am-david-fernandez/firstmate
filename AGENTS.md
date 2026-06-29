@@ -53,6 +53,25 @@ Commit durable changes to the shared, tracked material with terse messages.
 This repo is itself behind the no-mistakes gate: ship shared, tracked material through the pipeline - branch, commit, run the pipeline, PR - and the captain's merge rule applies here exactly as it does to projects.
 Never add an agent name as co-author.
 
+### Engineering hard rules (HR1-HR4)
+
+These four rules are durable engineering invariants for all firstmate work - project changes made by crewmates and firstmate self-improvement alike.
+They are complementary, not redundant: the local secret scanner (`bin/fm-secret-scan.sh`, section 7) catches high-entropy credentials a human review may miss, while HR2/HR3 catch the low-entropy private identifiers (channel/user/team ids, hostnames) the scanner is designed to ignore.
+
+1. **HR1 - Verify before complete.**
+   Never report work as complete, ready, safe, done, or passing - to the captain or in a status file - without first running, and confirming green: (a) `bin/fm-secret-scan.sh` over the change, (b) the relevant tests, and (c) `shellcheck` for any shell change.
+   Cite the evidence; no success claim without verification output.
+2. **HR2 - Fake placeholders only.**
+   Examples, tests, fixtures, and documentation must use obviously-fake placeholder values - never real tokens, API keys, channel/user/team IDs, hostnames, emails, or other captain- or environment-specific identifiers.
+   Real values live only in gitignored local config or the environment.
+3. **HR3 - Hermetic tests.**
+   Tests must not depend on ambient environment they do not set.
+   Unset or override any environment variable the system under test reads (e.g. `FM_SLACK_CHANNEL`, `FM_SECRET_SCAN_*`) so a configured operator environment can neither change results nor leak real values into output or logs.
+4. **HR4 - Scan before it leaves the machine.**
+   Before any commit, push, PR, local-only merge, or handoff - for project work or firstmate self-improvement - the change must pass a local secret scan.
+   Crewmates enforce this via their brief; firstmate enforces it via `fm-review-diff`/`fm-merge-local` and HR1.
+   The gate is operator-disablable through the `FM_ENABLE_SECRET_SCAN` master switch (default on; `0`/`false`/`no`/`off` disables it at the single chokepoint, with a printed notice), for environments without a scanner or that gate elsewhere.
+
 ## 2. Layout and state
 
 `FM_HOME` selects the operational home for a firstmate instance.
@@ -378,6 +397,7 @@ A ship task's path from `done` to landed on `main` is set by the project's `mode
 
 When reviewing any crewmate branch diff, use `bin/fm-review-diff.sh <id>` rather than `git diff <default>...branch` directly.
 Pooled clones keep their local default refs frozen at clone time and can lag `origin`; the helper always compares against the authoritative base.
+Both `bin/fm-review-diff.sh` and `bin/fm-merge-local.sh` run `bin/fm-secret-scan.sh` over the change as the HR4 gate: review surfaces any finding before the captain sees the diff, and the local merge refuses outright on a finding (resolve it, or allowlist a documented placeholder in `.betterleaks.toml`, then retry).
 
 **yolo (orthogonal).** With `yolo=off` (default) every approval is the captain's: ask-user findings, PR merges, the local-only merge. With `yolo=on`, firstmate makes those calls itself without asking - resolve ask-user findings on your judgment, and run `gh-axi pr merge` / `bin/fm-merge-local.sh` once the work is green/approved - EXCEPT anything destructive, irreversible, or security-sensitive, which still escalates to the captain. Never merge a red PR even under yolo. After any merge you perform without asking the captain, post a one-line "merged <full PR URL or local main> after checks passed" FYI so the captain keeps a trail.
 
@@ -649,6 +669,7 @@ For a ship task the definition of done is shaped by the project's delivery mode 
 The no-mistakes brief points to no-mistakes' version-matched guidance and keeps only firstmate-specific wrapper rules for `ask-user` escalation, `--yes` avoidance, and the CI-green done line.
 The scaffold reads the mode via `fm-project-mode.sh`, so you do not pass it.
 Ship briefs also include the project-memory contract: run `bin/fm-ensure-agents-md.sh` when the project already has agent-memory files or when the task produced durable project-intrinsic knowledge, then record proportionate learnings in `AGENTS.md`.
+Ship briefs also carry the secret-hygiene contract (HR1-HR4): scan staged changes with `bin/fm-secret-scan.sh --staged` before every commit, never commit on a finding, and use only fake placeholder values for tokens, keys, ids, hostnames, or emails; scout briefs carry the lighter placeholders-only note for their report.
 For scout tasks add `--scout`: the scaffold swaps the definition of done for the report contract (findings to `data/<id>/report.md`, no branch, no push, no PR) and declares the worktree scratch; scout is mode-agnostic.
 Scout briefs do not include the project-memory step, because their deliverable is a report rather than a committed project change.
 For secondmates use `bin/fm-brief.sh <id> --secondmate <project>...`.

@@ -116,11 +116,14 @@ test_bootstrap_line() {
 # The generated ship brief must carry the isolation assertion AHEAD of the
 # `git checkout -b` step, so the crewmate verifies its worktree before branching.
 test_brief_assertion_precedes_branch() {
-  local home brief iso br
+  local home brief iso br expected_branch
   home="$TMP_ROOT/brief-home"
   mkdir -p "$home/data"
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" tangle-brief-cc3 alpha >/dev/null 2>&1
   brief="$home/data/tangle-brief-cc3/brief.md"
+  # The branch step uses fm-branch.sh (honoring any FM_BRANCH_PREFIX), so resolve
+  # the expected name the same way rather than hardcoding the fm/<id> form.
+  expected_branch=$("$ROOT/bin/fm-branch.sh" tangle-brief-cc3)
   assert_present "$brief" "brief was not scaffolded"
   assert_grep "blocked: launched in primary checkout, not an isolated worktree" "$brief" \
     "brief is missing the isolation blocked-status contract"
@@ -131,9 +134,7 @@ test_brief_assertion_precedes_branch() {
   assert_no_grep "they are identical in the primary checkout" "$brief" \
     "brief must not claim the primary checkout has identical git dirs"
   iso=$(grep -n 'launched in primary checkout, not an isolated worktree' "$brief" | head -1 | cut -d: -f1)
-  # Prefix-agnostic: the branch step is `git checkout -b [<prefix>/]fm/<id>`
-  # (FM_BRANCH_PREFIX may be set in the ambient environment; see fm-branch.sh).
-  br=$(grep -nE 'git checkout -b ([^[:space:]]+/)?fm/' "$brief" | head -1 | cut -d: -f1)
+  br=$(grep -n "git checkout -b $expected_branch" "$brief" | head -1 | cut -d: -f1)
   if [ -z "$iso" ] || [ -z "$br" ]; then
     fail "brief missing assertion ($iso) or branch step ($br)"
   fi

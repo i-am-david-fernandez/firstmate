@@ -44,6 +44,11 @@ See the [no-mistakes quick start](https://kunchenguid.github.io/no-mistakes/star
   `shellcheck bin/*.sh tests/*.sh` must pass, and CI enforces it.
 - Changes to harness adapters (launch templates in `bin/fm-spawn.sh`, facts in `.agents/skills/harness-adapters/SKILL.md`) must be verified empirically against the real harness, never written from documentation alone.
 - In Markdown, put each full sentence on its own line.
+- Four engineering hard rules apply to every change (see AGENTS.md for the full wording):
+  - **HR1 - Verify before complete.** No "done/ready/passing" claim without first running and confirming green: `bin/fm-secret-scan.sh` over the change, the relevant tests, and `shellcheck` for any shell change. Cite the evidence.
+  - **HR2 - Fake placeholders only.** Examples, tests, fixtures, and docs use obviously-fake values - never real tokens, keys, channel/user/team ids, hostnames, or emails. Real values live only in gitignored local config or the environment.
+  - **HR3 - Hermetic tests.** Unset or override any environment variable the system under test reads (e.g. `FM_SLACK_CHANNEL`, `FM_SECRET_SCAN_*`) so a configured environment cannot change results or leak real values into output.
+  - **HR4 - Scan before it leaves the machine.** Run a local secret scan before any commit, push, PR, local-only merge, or handoff. `bin/fm-secret-scan.sh` wraps `betterleaks` (operator-installed, local-only) and degrades to a built-in prefix grep when it is absent, never silently passing. Documented fake placeholders are allowlisted in the repo-root `.betterleaks.toml`; never silence a real detection.
 
 ## Development
 
@@ -58,6 +63,7 @@ Check and test the toolbelt before pushing:
 ```sh
 bash -n bin/*.sh                          # syntax-check the toolbelt
 shellcheck bin/*.sh tests/*.sh            # lint the toolbelt and behavior tests; CI enforces this
+bin/fm-secret-scan.sh --staged            # HR4 pre-PR secret scan of staged changes (also a full-tree scan for new files)
 for test_script in tests/*.test.sh; do bash "$test_script"; done   # behavior tests, matching CI and no-mistakes commands.test
 tests/fm-wake-queue.test.sh               # durable wake queue losslessness, catch-up, double-drain, duplicate-collapse, and drain liveness guard tests
 tests/fm-watcher-lock.test.sh             # watcher singleton, lock-race, watch-arm liveness, and guard-warning tests
@@ -81,6 +87,7 @@ tests/fm-secondmate-safety.test.sh        # secondmate home safety, idle charter
 tests/fm-teardown.test.sh                 # fm-teardown.sh landed-work safety and reminder checks: fork-remote allow, squash/content landings, dirty and unlanded refusals, PR-head metadata, tasks-axi reminder, --force override
 tests/fm-crew-state.test.sh               # fm-crew-state.sh current-state reconciliation: run-step authority including closed panes, stale needs-decision/blocked superseded by a resumed run, genuine-parked, cross-branch attribution, pane/status-log fallback, scout skip, torn-down/missing-meta graceful
 tests/fm-slack.test.sh                    # Slack attention module: channel resolution and override, require checks, new-since bot/subtype/marker filtering and oldest-first ordering, compact post payload, empty-post refusal
+tests/fm-secret-scan.test.sh              # fm-secret-scan.sh: betterleaks-present mode/exit/redact/config mapping (faked binary) and binary-absent degraded grep, strict mode, and hermetic env
 [ "$(readlink CLAUDE.md)" = "AGENTS.md" ]
 [ "$(readlink .claude/skills)" = "../.agents/skills" ]
 tmp=$(mktemp -d) && printf 'done: smoke\n' > "$tmp/smoke.status" && FM_STATE_OVERRIDE="$tmp" FM_SIGNAL_GRACE=1 FM_POLL=1 FM_HEARTBEAT=999999 bin/fm-watch-arm.sh  # watcher re-arm smoke test (prints arm status, then an actionable signal)

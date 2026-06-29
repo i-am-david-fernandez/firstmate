@@ -1,0 +1,31 @@
+# Secret-scanner config for the firstmate repo (read by betterleaks 1.6.0; also
+# gitleaks-compatible). Consumed by bin/fm-secret-scan.sh. See AGENTS.md hard
+# rule HR4 and docs/configuration.md.
+#
+# Keep this allowlist TIGHT and commented: every entry exists to keep a
+# *documented, obviously-fake placeholder* quiet, never to silence a real
+# detection. Real values live only in gitignored local config or the
+# environment (hard rule HR2). Never add a real token, key, or identifier here.
+
+# Start from betterleaks' built-in rules, then add the allowances below.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented fake placeholders shipped in firstmate docs and tests."
+
+# Fake Slack bot tokens used as placeholders in docs/tests (e.g. the Slack
+# attention channel docs and tests/fm-slack.test.sh use "xoxb-test"). The real
+# bot token is read only from the SLACK_API_KEY environment variable.
+regexes = [
+  '''xoxb-test''',
+]
+
+# Example/placeholder identifiers used in docs and tests (Slack channel ids in
+# tests/fm-slack.test.sh). These are low-entropy and not credentials, so the
+# scanner does not flag them; listed here so the intent is explicit and the
+# entry is ready if a rule ever matches them.
+stopwords = [
+  "CEXAMPLE001",
+  "COVERRIDE",
+]

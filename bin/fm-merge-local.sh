@@ -22,6 +22,7 @@ META="$STATE/$ID.meta"
 [ -f "$META" ] || { echo "error: no meta for task $ID at $META" >&2; exit 1; }
 
 PROJ=$(grep '^project=' "$META" | cut -d= -f2-)
+WT=$(grep '^worktree=' "$META" | cut -d= -f2- || true)
 MODE=$(grep '^mode=' "$META" | cut -d= -f2- || true)
 [ "$MODE" = local-only ] || { echo "error: task $ID is mode=$MODE, not local-only; merge it the normal way (gh-axi pr merge / captain)" >&2; exit 1; }
 
@@ -52,6 +53,23 @@ cur=$(git -C "$PROJ" symbolic-ref --short HEAD 2>/dev/null || echo "")
 [ "$cur" = "$DEFAULT" ] || { echo "error: $PROJ is on '$cur', expected default branch '$DEFAULT'; cannot merge safely" >&2; exit 1; }
 if [ -n "$(git -C "$PROJ" status --porcelain 2>/dev/null | head -1)" ]; then
   echo "error: $PROJ has a dirty working tree; refusing to merge into it" >&2
+  exit 1
+fi
+
+# Secret-scan gate (AGENTS.md hard rule HR4): refuse to merge a branch carrying a
+# secret. Scan the branch's new commits from the task worktree when available,
+# else a coarse scan of the project tree as a backstop. The gate self-disables
+# when FM_ENABLE_SECRET_SCAN is off (handled inside fm-secret-scan.sh, the single
+# chokepoint); no flag check is needed here.
+SCAN_RC=0
+if [ -n "$WT" ] && [ -d "$WT" ]; then
+  ( cd "$WT" && "$FM_ROOT/bin/fm-secret-scan.sh" --since "$DEFAULT" ) || SCAN_RC=$?
+else
+  "$FM_ROOT/bin/fm-secret-scan.sh" "$PROJ" || SCAN_RC=$?
+fi
+if [ "$SCAN_RC" -ne 0 ]; then
+  echo "REFUSED: secret scan found a problem on $BRANCH (rc=$SCAN_RC); not merging." >&2
+  echo "Resolve the findings (or allowlist documented placeholders in .betterleaks.toml), then retry." >&2
   exit 1
 fi
 
