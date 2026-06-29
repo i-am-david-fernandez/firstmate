@@ -35,6 +35,9 @@ Each file also starts with a short header comment.
 | `fm-pr-check.sh`         | Record `pr=` and a verified `pr_head=` when available for a PR-ready task, then arm the watcher's merge poll        |
 | `fm-promote.sh`          | Promote a scout task in place so it becomes a protected ship task                                                   |
 | `fm-teardown.sh`         | Return a clean, landed ship worktree or retire/release a secondmate home; requires scout reports, checks child work, and prints the backlog reminder |
+| `fm-slack-lib.sh`        | Shared Slack helpers (post, read, new-since-marker) for the captain's attention channel; token from `SLACK_API_KEY`, channel from `FM_SLACK_CHANNEL` or `config/slack-channel` |
+| `fm-slack-notify.sh`     | Post one attention message (needed decision, blocker, or long-task completion) to the configured Slack channel, mirroring a chat escalation |
+| `fm-slack-watch.sh`      | Block until a new human reply lands in the Slack attention channel, print it, advance the seen marker, and exit; re-launch to keep watching, like the crew watcher arm chain |
 | `fm-harness.sh`          | Detect the running harness; resolve the effective crewmate harness                                                  |
 | `fm-lock.sh`             | Per-home firstmate session lock                                                                                     |
 | `fm-x-lib.sh`            | Shared X-mode `.env`, alternate env-file, relay, dry-run config, reply-thread splitting, and task-to-X-request meta-link helpers |

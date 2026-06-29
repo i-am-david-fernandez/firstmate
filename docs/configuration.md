@@ -50,6 +50,18 @@ By default the branch is `fm/<id>`.
 Setting `FM_BRANCH_PREFIX` to a non-empty value prefixes every crewmate branch as `<FM_BRANCH_PREFIX>/fm/<id>` (e.g. `FM_BRANCH_PREFIX=alice` yields `alice/fm/fix-login-k3`); unset or empty keeps the legacy `fm/<id>` form, so default behavior is unchanged.
 It resolves from firstmate's own environment, so export it in the launch profile to persist across restarts.
 
+## Slack attention channel (optional)
+
+firstmate can mirror attention-needing events - a decision it needs, a blocker, or completion of a long-running task - to a single Slack channel, in addition to the normal chat interface, so the captain stays reachable when away from the interface.
+This is opt-in and entirely local; the shared template ships no channel.
+
+- `SLACK_API_KEY` (environment) is the bot token (`xoxb-...`). The token is a secret, so it is read only from the environment, never a tracked file. The bot needs `chat:write` to post and, for a private channel, `groups:history`/`groups:read` to read replies (`channels:history`/`channels:read` for a public one).
+- `config/slack-channel` is a local, gitignored file holding one channel id (first non-blank, non-comment line). `FM_SLACK_CHANNEL` overrides it.
+- `bin/fm-slack-notify.sh "<message>"` posts one attention message. Routine chatter does not belong here; the channel is for getting the captain.
+- `bin/fm-slack-watch.sh` blocks until a new human reply arrives, prints it, and exits - run it as a harness-tracked background task and re-launch after each wake, exactly like the crew watcher's arm chain. It seeds its seen marker (`state/.slack-last-ts`) from the current latest message so only new replies wake firstmate.
+
+When no channel is configured, the helpers fail fast with a clear error and firstmate simply converses in chat as before.
+
 ## Harness support
 
 claude, codex, opencode, and pi are all empirically verified; new harnesses get verified through a supervised trial task before joining the set.
@@ -120,6 +132,9 @@ FM_DATA_OVERRIDE=        # alternate data dir, mainly for tests
 FM_PROJECTS_OVERRIDE=    # alternate projects dir, mainly for tests
 FM_CONFIG_OVERRIDE=      # alternate config dir, mainly for tests
 FM_BRANCH_PREFIX=        # optional crewmate branch prefix; set means <prefix>/fm/<id>, unset means fm/<id>
+SLACK_API_KEY=           # Slack bot token (xoxb-...) for the optional attention channel; environment only
+FM_SLACK_CHANNEL=        # Slack channel id override; else read from config/slack-channel
+FM_SLACK_POLL=45         # seconds between fm-slack-watch polls
 FM_POLL=15              # seconds between watcher poll cycles
 FM_HEARTBEAT=600        # base seconds between heartbeat scans; no-change heartbeats are absorbed while idle
 FM_HEARTBEAT_MAX=7200   # heartbeat backoff cap

@@ -590,6 +590,10 @@ Reaches the captain immediately:
 
 Does not reach the captain: auto-fixes, retries, routine progress, or firstmate's internal vocabulary and machinery.
 Batch non-urgent updates into your next natural reply.
+**Optional Slack mirror.** When a Slack attention channel is configured (`config/slack-channel` or `FM_SLACK_CHANNEL`, with `SLACK_API_KEY` in the environment; see `docs/configuration.md`), also post the immediate-escalation items above to that channel with `bin/fm-slack-notify.sh "<message>"`, in addition to the chat reply, so the captain stays reachable when away from the interface.
+The same outcome-language and tone rules apply to the Slack text; keep routine progress out of it.
+To catch the captain's Slack replies, run `bin/fm-slack-watch.sh` as a harness-tracked background task and re-launch it after each wake, the same arm-chain discipline as the crew watcher.
+When no channel is configured, this is simply inert and firstmate converses in chat only.
 Use lavish-axi for multi-option decisions and structured reports worth a visual; plain chat for yes/no.
 Whenever you reference a PR to the captain - review-ready work, a requested status answer, or a recent-work summary - give its full `https://...` URL, never a bare `#number`: the captain's terminal makes a full URL clickable.
 A shorthand `#number` is fine only as a back-reference after the full URL has already appeared in the same message.
