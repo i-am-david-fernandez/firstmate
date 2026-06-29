@@ -86,7 +86,9 @@ tests/fm-secondmate-lifecycle-e2e.test.sh # persistent secondmate routing, seedi
 tests/fm-secondmate-safety.test.sh        # secondmate home safety, idle charter, handoff validation, and teardown boundary tests
 tests/fm-teardown.test.sh                 # fm-teardown.sh landed-work safety and reminder checks: fork-remote allow, squash/content landings, dirty and unlanded refusals, PR-head metadata, tasks-axi reminder, --force override
 tests/fm-crew-state.test.sh               # fm-crew-state.sh current-state reconciliation: run-step authority including closed panes, stale needs-decision/blocked superseded by a resumed run, genuine-parked, cross-branch attribution, pane/status-log fallback, scout skip, torn-down/missing-meta graceful
-tests/fm-slack.test.sh                    # Slack attention module: channel resolution and override, require checks, new-since bot/subtype/marker filtering and oldest-first ordering, compact post payload, empty-post refusal
+tests/fm-slack.test.sh                    # Slack attention module: channel resolution and override, require + configured predicates, new-since bot/subtype/marker filtering and oldest-first ordering, compact post payload, empty-post refusal
+tests/fm-ntfy.test.sh                     # ntfy provider: no-op when unconfigured, host/topic resolution and env-over-file precedence, exact curl URL/headers/timestamped body, priority/heading/tags mapping, trailing-slash tolerance
+tests/fm-notify.test.sh                   # notification provider pattern: fm_notify_resolve env/file precedence, fm_notify_parse_args defaults/flags/usage-errors, and fm-notify.sh dispatcher fan-out to only-configured providers (hermetic via BASH_ENV neutralization)
 tests/fm-secret-scan.test.sh              # fm-secret-scan.sh: betterleaks-present mode/exit/redact/config mapping (faked binary) and binary-absent degraded grep, strict mode, and hermetic env
 [ "$(readlink CLAUDE.md)" = "AGENTS.md" ]
 [ "$(readlink .claude/skills)" = "../.agents/skills" ]

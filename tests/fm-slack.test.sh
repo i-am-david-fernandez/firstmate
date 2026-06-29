@@ -64,6 +64,12 @@ pass "FM_SLACK_CHANNEL overrides the config file"
 fm_slack_require || fail "fm_slack_require should pass with token and channel"
 pass "fm_slack_require passes when token and channel present"
 
+# 3b. fm_slack_configured (the no-op-when-unconfigured predicate for the provider):
+# true with token+channel, false without a token.
+fm_slack_configured || fail "fm_slack_configured should be true with token and channel"
+if ( SLACK_TOKEN=""; fm_slack_configured ); then fail "fm_slack_configured must be false without a token"; fi
+pass "fm_slack_configured: true with token+channel, false without token"
+
 # 4. new_since filters bots + subtypes, keeps only strictly-newer humans, oldest-first
 out=$(fm_slack_new_since "150.0")
 assert_contains "$out" "first human reply" "keeps human msg newer than marker"

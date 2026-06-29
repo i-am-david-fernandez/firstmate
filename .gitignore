@@ -8,3 +8,5 @@ data/
 config/crew-harness
 config/x-mode.env
 config/slack-channel
+config/ntfy-host
+config/ntfy-topic

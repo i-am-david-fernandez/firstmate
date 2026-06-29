@@ -18,15 +18,24 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 SLACK_TOKEN="${SLACK_API_KEY:-}"
 FM_SLACK_API="${FM_SLACK_API:-https://slack.com/api}"
 
+# Shared notification helpers (fm_notify_resolve); safe to source repeatedly.
+# shellcheck source=bin/fm-notify-lib.sh
+. "$FM_SLACK_LIB_DIR/fm-notify-lib.sh"
+
 # Resolve the channel: explicit override wins, else the local config file.
+# Prints empty when neither is set (callers test for emptiness).
 fm_slack_channel() {
-  if [ -n "${FM_SLACK_CHANNEL:-}" ]; then
-    printf '%s\n' "$FM_SLACK_CHANNEL"
-    return 0
-  fi
-  local f="$CONFIG/slack-channel"
-  [ -f "$f" ] || return 1
-  grep -vE '^[[:space:]]*(#|$)' "$f" | head -1 | tr -d '[:space:]'
+  fm_notify_resolve "${FM_SLACK_CHANNEL:-}" "$CONFIG/slack-channel"
+}
+
+# True when both a token and a channel are configured, i.e. the post path is
+# usable. Providers use this for the uniform silent-no-op-when-unconfigured
+# behavior; fm_slack_require (below) is the fail-fast variant for the watcher.
+fm_slack_configured() {
+  [ -n "$SLACK_TOKEN" ] || return 1
+  local ch
+  ch=$(fm_slack_channel)
+  [ -n "$ch" ]
 }
 
 # Fail fast unless token, channel, and required tools are all present.

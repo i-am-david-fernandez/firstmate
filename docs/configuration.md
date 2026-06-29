@@ -50,17 +50,36 @@ By default the branch is `fm/<id>`.
 Setting `FM_BRANCH_PREFIX` to a non-empty value prefixes every crewmate branch as `<FM_BRANCH_PREFIX>/fm/<id>` (e.g. `FM_BRANCH_PREFIX=alice` yields `alice/fm/fix-login-k3`); unset or empty keeps the legacy `fm/<id>` form, so default behavior is unchanged.
 It resolves from firstmate's own environment, so export it in the launch profile to persist across restarts.
 
-## Slack attention channel (optional)
+## Notification providers (optional)
 
-firstmate can mirror attention-needing events - a decision it needs, a blocker, or completion of a long-running task - to a single Slack channel, in addition to the normal chat interface, so the captain stays reachable when away from the interface.
-This is opt-in and entirely local; the shared template ships no channel.
+firstmate can mirror attention-needing events - a decision it needs, a blocker, or completion of a long-running task - to one or more external notification tools, in addition to the chat interface, so the captain stays reachable when away from the interface.
+This is opt-in and entirely local; the shared template ships no provider configuration.
+
+`bin/fm-notify.sh [-p PRIORITY] [-h HEADING] [-t TAGS] "<message>"` is the dispatcher: it fans one message out to every configured provider.
+Each provider is a **silent no-op when unconfigured**, so the dispatcher is safe to call unconditionally and an unconfigured fleet sends nothing and sees no behavior change.
+
+**The provider pattern.** Every provider is `bin/fm-<tool>-notify.sh` and shares one contract (documented in `bin/fm-notify-lib.sh`):
+
+- the uniform CLI `[-p PRIORITY] [-h HEADING] [-t TAGS] "<message>"` (parsed by `fm_notify_parse_args`; defaults priority 3, heading `firstmate`, no tags);
+- config resolved environment-first, else a local, gitignored file (`fm_notify_resolve`);
+- a silent no-op (exit 0, with a one-line stderr notice) when unconfigured or a required tool is absent - never an error;
+- exit 2 only on a usage error (unknown flag, missing value, empty message);
+- priority/heading/tags mapped onto the underlying tool as far as it allows.
+
+To integrate a new notification tool, write `bin/fm-<tool>-notify.sh` to that contract and add its short name to `PROVIDERS` in `bin/fm-notify.sh`. Routine chatter does not belong on any provider; they are for getting the captain.
+
+### Slack provider
 
 - `SLACK_API_KEY` (environment) is the bot token (`xoxb-...`). The token is a secret, so it is read only from the environment, never a tracked file. The bot needs `chat:write` to post and, for a private channel, `groups:history`/`groups:read` to read replies (`channels:history`/`channels:read` for a public one).
-- `config/slack-channel` is a local, gitignored file holding one channel id (first non-blank, non-comment line). `FM_SLACK_CHANNEL` overrides it.
-- `bin/fm-slack-notify.sh "<message>"` posts one attention message. Routine chatter does not belong here; the channel is for getting the captain.
-- `bin/fm-slack-watch.sh` blocks until a new human reply arrives, prints it, and exits - run it as a harness-tracked background task and re-launch after each wake, exactly like the crew watcher's arm chain. It seeds its seen marker (`state/.slack-last-ts`) from the current latest message so only new replies wake firstmate.
+- `config/slack-channel` is a local, gitignored file holding one channel id (first non-blank, non-comment line); `FM_SLACK_CHANNEL` overrides it.
+- Slack's `chat.postMessage` has no native priority or tags, so `bin/fm-slack-notify.sh` prefixes a non-default heading to the text and accepts (but does not render) priority/tags.
+- `bin/fm-slack-watch.sh` blocks until a new human reply arrives, prints it, and exits - run it as a harness-tracked background task and re-launch after each wake, exactly like the crew watcher's arm chain. It seeds its seen marker (`state/.slack-last-ts`) from the current latest message so only new replies wake firstmate. Watching is an explicit, must-be-configured action, so the watcher (unlike the push provider) fails fast with a clear error when unconfigured.
 
-When no channel is configured, the helpers fail fast with a clear error and firstmate simply converses in chat as before.
+### ntfy provider
+
+- `FM_NTFY_HOST` is the full base URL of the ntfy server, e.g. `http://hostname:port`. `config/ntfy-host` is its local, gitignored file equivalent (first non-blank, non-comment line); the environment wins.
+- `FM_NTFY_TOPIC` selects the topic. `config/ntfy-topic` is its local, gitignored file equivalent; the environment wins, and the default when neither is set is `firstmate`.
+- `bin/fm-ntfy-notify.sh` maps priority/heading/tags onto ntfy's native `Priority`/`Title`/`Tags` headers, with a timestamped body, via ntfy's HTTP API. The push carries no credentials, matching a tokenless ntfy server.
 
 ## Secret scanning (optional, local)
 
@@ -153,6 +172,8 @@ FM_CONFIG_OVERRIDE=      # alternate config dir, mainly for tests
 FM_BRANCH_PREFIX=        # optional crewmate branch prefix; set means <prefix>/fm/<id>, unset means fm/<id>
 SLACK_API_KEY=           # Slack bot token (xoxb-...) for the optional attention channel; environment only
 FM_SLACK_CHANNEL=        # Slack channel id override; else read from config/slack-channel
+FM_NTFY_HOST=               # optional ntfy base URL, e.g. http://hostname:port; else config/ntfy-host. Unset = ntfy push is a no-op
+FM_NTFY_TOPIC=              # ntfy topic; else config/ntfy-topic; default firstmate
 FM_ENABLE_SECRET_SCAN=   # master on/off switch for the secret-scan gate (default: on); 0|false|no|off disables it
 FM_SECRET_SCAN_BIN=      # override the secret-scanner binary (default: betterleaks on PATH)
 FM_SECRET_SCAN_CONFIG=   # override the scanner config file (default: repo-root .betterleaks.toml)
