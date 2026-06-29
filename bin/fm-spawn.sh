@@ -27,6 +27,12 @@
 #     __PIEXT__    absolute path to state/<task-id>.pi-ext.ts (pi turn-end extension,
 #                  written by this script; outside the worktree to avoid pi's trust gate)
 # Per-harness turn-end hooks are installed automatically; some live outside the worktree.
+# Fleet startup/auth hook: for ship/scout crewmates, a LOCAL, gitignored
+# config/startup.sh (if present) is SOURCED in the crewmate pane right before the
+# agent launches, so crewmates inherit the captain's fleet auth/env. Crewmates are
+# not firstmate instances and never run bootstrap, so this is their only startup
+# seam. Secondmates are excluded: each runs its own bootstrap, which sources THAT
+# home's own config/startup.sh.
 # On success prints: spawned <id> harness=<name> kind=<ship|scout|secondmate> mode=<mode> yolo=<on|off> window=<session:window> worktree=<path>
 # mode/yolo are resolved per-project from data/projects.md for ship/scout tasks;
 # secondmate spawns record mode=secondmate, yolo=off, home=, and projects=.
@@ -38,6 +44,7 @@ FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 PROJECTS="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}"
+CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 SUB_HOME_MARKER=".fm-secondmate-home"
 # shellcheck source=bin/fm-ff-lib.sh
 . "$SCRIPT_DIR/fm-ff-lib.sh"
@@ -489,6 +496,18 @@ LAUNCH=${LAUNCH//__PIEXT__/$sq_piext}
 if [ "$KIND" = secondmate ]; then
   sq_home=$(shell_quote "$PROJ_ABS")
   LAUNCH="FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_HOME=$sq_home $LAUNCH"
+else
+  # Fleet startup/auth hook: SOURCE the LOCAL, gitignored config/startup.sh in the
+  # crewmate pane right before the agent launches, so ship/scout crewmates inherit
+  # the captain's fleet auth/env. Crewmates are not firstmate instances and never
+  # run bootstrap, so this is their only startup seam. POSIX `.` (the pane shell may
+  # be /bin/sh); absolute, shell-quoted path; non-fatal so a hook problem never
+  # blocks the launch. Secondmates are excluded above: they source their own home's
+  # copy via their own bootstrap.
+  if [ -f "$CONFIG/startup.sh" ]; then
+    sq_startup=$(shell_quote "$CONFIG/startup.sh")
+    LAUNCH=". $sq_startup || true; $LAUNCH"
+  fi
 fi
 tmux send-keys -t "$T" -l "$LAUNCH"
 sleep 0.3

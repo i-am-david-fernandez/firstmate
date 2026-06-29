@@ -34,6 +34,10 @@
 #          recovered and STUCK clone drift, and prunes gone local branches; it is
 #          bounded by FM_FLEET_SYNC_BOOTSTRAP_TIMEOUT, default 20s.
 #          Set FM_FLEET_PRUNE=0 to skip branch pruning during that refresh.
+#          A LOCAL, gitignored config/startup.sh, if present, is SOURCED at every
+#          session start (before the auth checks) so the captain's fleet-wide
+#          startup/auth steps run for firstmate itself; ship/scout crewmates get
+#          the same hook via fm-spawn.sh. Failures there are non-fatal.
 #        fm-bootstrap.sh install <tool>...
 #          Install the named tools (only ones the captain approved).
 set -u
@@ -278,6 +282,17 @@ if [ "${1:-}" = "install" ]; then
     eval "$cmd"
   done
   exit 0
+fi
+
+# Fleet startup/auth hook (LOCAL, gitignored). SOURCED so any env it exports
+# persists into this firstmate session. Runs BEFORE the auth checks below, so a
+# token-based login it performs is reflected in NEEDS_GH_AUTH. Must be POSIX sh,
+# fast, non-interactive, idempotent, and must never call `exit` (see the skeleton
+# in config/startup.sh). Failures are non-fatal: a problem in the captain's hook
+# must not abort bootstrap.
+if [ -f "$CONFIG/startup.sh" ]; then
+  # shellcheck source=/dev/null
+  . "$CONFIG/startup.sh" || true
 fi
 
 for t in $TOOLS; do
