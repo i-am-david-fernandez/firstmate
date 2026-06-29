@@ -102,6 +102,10 @@ state/               volatile runtime signals; gitignored
 
 Task ids are short kebab slugs with a random suffix, e.g. `fix-login-k3`.
 The tmux window for a task is always named `fm-<id>`.
+The crewmate branch for a task is named by `bin/fm-branch.sh <id>`, the single source of truth that every branch-aware script (`fm-brief`, `fm-merge-local`, `fm-review-diff`, `fm-promote`) calls; never hardcode the branch form.
+By default the branch is `fm/<id>`.
+Setting the optional `FM_BRANCH_PREFIX` environment variable in firstmate's launch profile prefixes every crewmate branch as `<FM_BRANCH_PREFIX>/fm/<id>` (e.g. `FM_BRANCH_PREFIX=alice` yields `alice/fm/fix-login-k3`); unset or empty keeps the legacy `fm/<id>` form, so default behavior is unchanged.
+This resolves from firstmate's own environment, so export it in the launch profile to persist across restarts.
 
 ## 3. Bootstrap (run at every session start)
 
@@ -370,7 +374,7 @@ A ship task's path from `done` to landed on `main` is set by the project's `mode
 
 - **no-mistakes** - the stages below as written: no-mistakes validation pipeline -> PR -> captain merge.
 - **direct-PR** - no pipeline. The crewmate pushes and opens the PR itself (its brief says so) and reports `done: PR <url>`. Skip the Validate step and go straight to PR ready (run `fm-pr-check`, relay the PR). Teardown uses the normal landed-work check.
-- **local-only** - no remote, no PR. The crewmate stops at `done: ready in branch fm/<id>`. Review the diff with `bin/fm-review-diff.sh <id>`, relay a one-paragraph summary to the captain, and on approval run `bin/fm-merge-local.sh <id>` to fast-forward local `main` (it refuses anything but a clean fast-forward - if it does, have the crewmate rebase). No `fm-pr-check`. Then teardown, whose safety check requires the branch already merged into local `main`, OR the work pushed to any remote (a fork counts - relevant for upstream-contribution PRs on a local-only-registered project).
+- **local-only** - no remote, no PR. The crewmate stops at `done: ready in branch <branch>`, where `<branch>` is the `bin/fm-branch.sh <id>` name (`fm/<id>` by default). Review the diff with `bin/fm-review-diff.sh <id>`, relay a one-paragraph summary to the captain, and on approval run `bin/fm-merge-local.sh <id>` to fast-forward local `main` (it refuses anything but a clean fast-forward - if it does, have the crewmate rebase). No `fm-pr-check`. Then teardown, whose safety check requires the branch already merged into local `main`, OR the work pushed to any remote (a fork counts - relevant for upstream-contribution PRs on a local-only-registered project).
 
 When reviewing any crewmate branch diff, use `bin/fm-review-diff.sh <id>` rather than `git diff <default>...branch` directly.
 Pooled clones keep their local default refs frozen at clone time and can lag `origin`; the helper always compares against the authoritative base.
@@ -445,7 +449,7 @@ A scout task follows Intake, Spawn, and Supervise exactly as above - scaffold th
 - Tear down immediately - no merge gate. `bin/fm-teardown.sh` allows a scout worktree's scratch commits and dirty files once the report exists; if the report is missing, it refuses, because the findings are the work product.
 - Record it in Done with the report path instead of a PR link using `tasks-axi done` when compatible tasks-axi is available, otherwise hand-edit `data/backlog.md` and keep Done to the 10 most recent, then re-evaluate the queue and dispatch only queued work whose blockers are gone and whose time/date gate, if any, has arrived.
 
-**Promotion.** When a scout's findings reveal shippable work (a reproduced bug with a clear fix) and the captain wants it shipped, promote the task in place instead of respawning: run `bin/fm-promote.sh <id>` (flips `kind=` to ship in meta, restoring teardown's full protection), then send the crewmate its ship instructions - inventory scratch state, reset to a clean default-branch base, carry over only intended fix changes, create branch `fm/<id>`, implement, and report `done` according to the project's delivery mode.
+**Promotion.** When a scout's findings reveal shippable work (a reproduced bug with a clear fix) and the captain wants it shipped, promote the task in place instead of respawning: run `bin/fm-promote.sh <id>` (flips `kind=` to ship in meta, restoring teardown's full protection), then send the crewmate its ship instructions - inventory scratch state, reset to a clean default-branch base, carry over only intended fix changes, create branch `<branch>` (the `bin/fm-branch.sh <id>` name, `fm/<id>` by default), implement, and report `done` according to the project's delivery mode.
 The crewmate keeps its worktree, loaded context, and repro, but the ship branch must start from a clean base with only intended changes; scratch commits and debug edits from the scout phase never ride along.
 The repro becomes the regression test.
 From there the task is an ordinary ship task through its mode-specific validation, PR or local merge, and Teardown.

@@ -46,7 +46,7 @@ Only a named non-default branch checked out in `FM_ROOT` is a worktree tangle.
 
 `fm-tangle-lib.sh` resolves the default branch from `origin/HEAD`, then local `main` or `master`, and classifies that named non-default primary branch as the tangle.
 `fm-guard.sh` prints the repair command on the next fleet action, while `fm-bootstrap.sh` reports the same condition as a `TANGLE:` line at session start.
-Ship briefs also tell the crewmate to verify `pwd -P` and `git rev-parse --show-toplevel` before creating `fm/<id>`, then stop with a blocked status if it landed in the primary checkout.
+Ship briefs also tell the crewmate to verify `pwd -P` and `git rev-parse --show-toplevel` before creating their branch (`fm-branch.sh <id>`, `fm/<id>` by default), then stop with a blocked status if it landed in the primary checkout.
 
 ## Two task shapes
 

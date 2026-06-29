@@ -41,7 +41,7 @@ default_branch() {
   return 1
 }
 
-BRANCH="fm/$ID"
+BRANCH=$("$FM_ROOT/bin/fm-branch.sh" "$ID")
 git -C "$PROJ" rev-parse --verify --quiet "refs/heads/$BRANCH" >/dev/null || { echo "error: branch $BRANCH does not exist in $PROJ" >&2; exit 1; }
 
 DEFAULT=$(default_branch) || { echo "error: cannot determine default branch for $PROJ; expected origin/HEAD, main, or master" >&2; exit 1; }

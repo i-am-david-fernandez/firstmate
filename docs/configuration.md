@@ -43,6 +43,13 @@ When it is unset, the repo root is the home; when it is set, scripts still run f
 When `FM_HOME` is unset, it also behaves as the old whole-root override.
 `FM_STATE_OVERRIDE`, `FM_DATA_OVERRIDE`, `FM_PROJECTS_OVERRIDE`, and `FM_CONFIG_OVERRIDE` override individual operational directories for tests and specialized harness setup.
 
+## Branch naming (FM_BRANCH_PREFIX)
+
+`bin/fm-branch.sh <id>` is the single source of truth for the crewmate branch name; every branch-aware script (`fm-brief`, `fm-merge-local`, `fm-review-diff`, `fm-promote`) calls it instead of hardcoding the form.
+By default the branch is `fm/<id>`.
+Setting `FM_BRANCH_PREFIX` to a non-empty value prefixes every crewmate branch as `<FM_BRANCH_PREFIX>/fm/<id>` (e.g. `FM_BRANCH_PREFIX=alice` yields `alice/fm/fix-login-k3`); unset or empty keeps the legacy `fm/<id>` form, so default behavior is unchanged.
+It resolves from firstmate's own environment, so export it in the launch profile to persist across restarts.
+
 ## Harness support
 
 claude, codex, opencode, and pi are all empirically verified; new harnesses get verified through a supervised trial task before joining the set.
@@ -112,6 +119,7 @@ FM_STATE_OVERRIDE=       # alternate state dir, mainly for tests
 FM_DATA_OVERRIDE=        # alternate data dir, mainly for tests
 FM_PROJECTS_OVERRIDE=    # alternate projects dir, mainly for tests
 FM_CONFIG_OVERRIDE=      # alternate config dir, mainly for tests
+FM_BRANCH_PREFIX=        # optional crewmate branch prefix; set means <prefix>/fm/<id>, unset means fm/<id>
 FM_POLL=15              # seconds between watcher poll cycles
 FM_HEARTBEAT=600        # base seconds between heartbeat scans; no-change heartbeats are absorbed while idle
 FM_HEARTBEAT_MAX=7200   # heartbeat backoff cap
