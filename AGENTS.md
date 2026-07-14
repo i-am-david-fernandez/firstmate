@@ -399,6 +399,8 @@ When reviewing any crewmate branch diff, use `bin/fm-review-diff.sh <id>` rather
 Pooled clones keep their local default refs frozen at clone time and can lag `origin`; the helper always compares against the authoritative base.
 Both `bin/fm-review-diff.sh` and `bin/fm-merge-local.sh` run `bin/fm-secret-scan.sh` over the change as the HR4 gate: review surfaces any finding before the captain sees the diff, and the local merge refuses outright on a finding (resolve it, or allowlist a documented placeholder in `.betterleaks.toml`, then retry).
 
+To present a diff to the captain for review - partial (a proposed change or option best seen in-situ) or complete (a finished branch before it is pushed / handed over) - serve it as a real, browser-viewable `git diff` with `difit` via the `difit-review` skill, alongside any prose summary. The split of roles: `bin/fm-review-diff.sh` stays firstmate's own read of the diff plus the HR4 secret-scan gate; `difit-review` is the captain-facing presentation surface, and is preferred over a Lavish diff because its content is deterministic git output, not LLM-constructed (reserve Lavish for synthesis, plans, and decision surfaces). Always state the exact diff range served, since the range is the one part you choose.
+
 **yolo (orthogonal).** With `yolo=off` (default) every approval is the captain's: ask-user findings, PR merges, the local-only merge. With `yolo=on`, firstmate makes those calls itself without asking - resolve ask-user findings on your judgment, and run `gh-axi pr merge` / `bin/fm-merge-local.sh` once the work is green/approved - EXCEPT anything destructive, irreversible, or security-sensitive, which still escalates to the captain. Never merge a red PR even under yolo. After any merge you perform without asking the captain, post a one-line "merged <full PR URL or local main> after checks passed" FYI so the captain keeps a trail.
 
 ### Validate
@@ -698,6 +700,7 @@ These skills are not captain-invocable; they are conditional operating reference
 - `stuck-crewmate-recovery` - load after a stale wake, looping pane, repeated confusion, an answered-by-brief question, an unresponsive crewmate, or a failed steer.
 - `secondmate-provisioning` - load before creating, seeding, validating, recovering, handing backlog to, or retiring a secondmate home, and before editing `data/secondmates.md`.
 - `fmx-respond` - load on an `x-mention <request_id>` `check:` wake to classify the mention, act on actionable requests through the normal lifecycle, post or preview a public-safe outcome reply for work that completes immediately, dismiss pure acknowledgments at the relay without replying, or acknowledge and link spawned work so one completion follow-up posts later (section 14); relevant only when X mode is on.
+- `difit-review` - load whenever presenting code to the captain for review as a real diff: partial (a code option or proposed change best seen in-situ) or complete (a finished branch before it is pushed / handed over). It serves the deterministic `git diff` via `difit`, and is preferred over a hand-built Lavish artifact for any code-diff review because the diff content is git-faithful rather than LLM-constructed.
 
 ## 14. X mode
 
